@@ -1,5 +1,7 @@
 # Kahoot Quiz Creator
 
+![Illustration of a quiz editor with four answer choices, content drafting, verification, approval, and browser automation](docs/images/kahoot-quiz-creator-hero.webp)
+
 An unofficial [Claude](https://claude.ai) Agent Skill for designing a reviewable Kahoot quiz and, with explicit user approval, entering it into the Kahoot web editor through browser automation.
 
 The skill separates two actions:
