@@ -39,7 +39,8 @@ def main() -> None:
             entry = zipfile.ZipInfo(archive_path, date_time=(2026, 1, 1, 0, 0, 0))
             entry.compress_type = zipfile.ZIP_DEFLATED
             entry.external_attr = 0o100644 << 16
-            archive.writestr(entry, source.read_bytes())
+            normalized_text = source.read_text(encoding="utf-8").replace("\r\n", "\n")
+            archive.writestr(entry, normalized_text.encode("utf-8"))
 
     print(f"Built {ARCHIVE.relative_to(ROOT)}")
 
