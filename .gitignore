@@ -1,0 +1,20 @@
+# Packaged skill artifact (built on demand)
+*.skill
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/
+
+# Python (in case helper scripts are added later)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Logs / temp
+*.log
+tmp/
