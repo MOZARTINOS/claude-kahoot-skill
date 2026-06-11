@@ -34,3 +34,8 @@ Explanation: The narwhal is a real Arctic whale with a long spiral tusk; the oth
 3. What is the boiling point of water at sea level, in °C? — 100
 4. How many colours are in a rainbow? — 7
 5. What is the largest ocean on Earth? — The Pacific
+
+## Sources / verification notes
+
+- Add authoritative links here for current, specialized, or potentially disputed facts.
+- Stable elementary facts in this example were checked for internal consistency.

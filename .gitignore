@@ -1,5 +1,6 @@
 # Packaged skill artifact (built on demand)
 *.skill
+dist/
 
 # OS / editor cruft
 .DS_Store

@@ -1,6 +1,6 @@
 # Filling Kahoot via browser automation
 
-This documents the exact mechanics of the Kahoot creator (`create.kahoot.it`) using the Claude-in-Chrome browser tools. It was derived from a real, successful 25-question build. Following it avoids the traps that waste time.
+This documents a browser-automation strategy for the Kahoot creator (`create.kahoot.it`). It was last reviewed on 2026-06-11. Kahoot and browser-tool interfaces change frequently: treat labels and tool names below as examples, inspect the live page, and stop safely if the required capabilities are unavailable.
 
 ## Table of contents
 
@@ -13,7 +13,7 @@ This documents the exact mechanics of the Kahoot creator (`create.kahoot.it`) us
 
 ## 1. Tools and golden rules
 
-You'll use: `navigate`, `read_page` (accessibility tree, `filter: interactive`), `find` (natural-language element search), `computer` (click/type, supports clicking by element `ref`), and `browser_batch` (run several actions in one round trip).
+Use the available browser tools for navigation, semantic page inspection, element lookup, clicking, typing, and optional batching. In Claude-in-Chrome these may appear as tools such as `navigate`, `read_page`, `find`, `computer`, and `browser_batch`; other compatible environments may use different names.
 
 Three rules that matter more than anything else:
 
@@ -24,25 +24,26 @@ Three rules that matter more than anything else:
 ## 2. Setup
 
 1. `navigate` to `https://create.kahoot.it/creator`.
-2. `read_page` / `get_page_text`. If you see a login page, **stop and ask the user to log in** in that browser window. Never enter credentials or authenticate on their behalf. Resume when they confirm.
+2. Inspect the page. If you see a login page, **stop and ask the user to log in** in that browser window. Never enter credentials, one-time codes, recovery codes, or authenticate on their behalf. Resume when they confirm.
 3. If a **cookie-consent banner** appears, choose the most privacy-preserving option — `find` and click "Reject all" (decline non-essential cookies) before doing anything else.
-4. A "Create a new kahoot" dialog appears with template choices. Click the **blank** option ("Blank" / in other locales "Blankt ark") to get an empty Quiz slide.
-5. **Confirm the editor is ready before typing.** The template dialog takes a moment to fully close, and the accessibility tree can briefly still show it. If you start typing into the first slide while the dialog is still resolving, that content can be silently discarded. After filling the first question, verify it persisted (a quick screenshot, or re-read the title field and check it now contains your text) before adding the second question. This one check saves you from re-entering everything.
+4. Confirm with the user that this is the intended account/workspace. Create a new kahoot; do not open or overwrite an existing quiz unless explicitly requested.
+5. If a "Create a new kahoot" dialog appears, choose the **blank** option ("Blank" / in other locales "Blankt ark") to get an empty Quiz slide.
+6. **Confirm the editor is ready before typing.** The template dialog can take a moment to fully close. After filling the first question, re-read the title and answer fields to verify that the content persisted before adding the second question.
 
 Note: the Kahoot UI renders in the account's language. Labels below are given in English with the Norwegian equivalent in parentheses, because `find`/`read_page` match on these accessibility labels. Prefer matching by **role** (textbox, switch, button) plus a language-agnostic description in your `find` query.
 
 ## 3. The per-question loop
 
-The first blank slide already exists. For every subsequent question you repeat this loop. Element `ref`s are reassigned on each new slide, so re-read them each time — but the **sidebar "Add" button keeps a stable ref across the whole session**, which you can reuse.
+The first blank slide commonly already exists. Inspect the live editor before assuming this. Element references can be reassigned after any render, so re-read them as needed; do not rely on a reference remaining stable across the whole session.
 
 Per question:
 
-1. **Add a slide.** `browser_batch`: click the sidebar Add button (label "Add"/"Legg til"; stable ref, e.g. `ref_10`) → `find` "Quiz question type option in the add-question dialog".
+1. **Add a slide.** Click the sidebar Add button (label such as "Add"/"Legg til"), then locate the Quiz question type in the dialog.
 2. **Pick Quiz type.** `browser_batch`: click the Quiz option ref from step 1 → `read_page` (`filter: interactive`) to grab the new slide's field refs.
 3. **Fill the slide.** `browser_batch` chaining: click title ref → type question; then for each answer: click answer ref → type option. Field labels: title = "Question title…" ("Spørsmålstittel…"), answers = "Add answer 1..4" ("Legg til svar 1..4"). End the same batch with `find` "answer correct toggle switches" to get the switch refs.
 4. **Mark correct** (see section 4): click the switch ref for the correct slot.
 
-This is ~4–5 tool calls per question. Keep going until all questions are in.
+Keep going until all approved questions are in. Re-check progress periodically so a stale element or failed batch does not corrupt many slides.
 
 ### Why each piece is shaped this way
 - Steps are split into batches because a batch stops on first error, and a `ref` found in one batch may go stale before the next batch runs — so do the click that *consumes* a freshly-found ref early in the next batch.
@@ -57,7 +58,7 @@ Marking by switch ref is reliable; marking by clicking the colored circle by coo
 ## 5. Title, save, finish
 
 1. Click the kahoot-title button at the top ("Enter kahoot title…"). A settings dialog opens with a title textbox and a description textbox. Fill both, then click "Done" ("Ferdig").
-2. Click **Save** ("Lagre"). Kahoot validates that **every question has a correct answer marked** — if it lets you save, that's strong evidence all your marks are in place. A "Your kahoot is ready" ("Kahooten er nå klar") dialog confirms success.
+2. Before saving, verify the title, total question count, each question's answer text, and the selected correct answer. Then click **Save** ("Lagre"). A "Your kahoot is ready" ("Kahooten er nå klar") dialog confirms that Kahoot accepted the quiz, but it does not replace content verification.
 3. Click "Done" ("Ferdig") to land in the library. The kahoot is now in the user's private library.
 
 Do **not** click "Share"/publish or anything that makes content public without explicit user permission.
@@ -69,5 +70,6 @@ Do **not** click "Share"/publish or anything that makes content public without e
 - **Stray media image from a misclick.** If a coordinate click accidentally adds a media image, remove it via the "Remove media" ("Fjern mediet") button, then refill the slide by refs. This is exactly the failure that operating-by-ref prevents.
 - **A freshly found `ref` is "not found" on use.** The dialog re-rendered; just `find` the element again and click the new ref.
 - **Character limits.** Question ≈120, answers ≈75. If text is rejected or truncated, shorten it.
-- **First slide lost.** If the very first question comes back empty after you typed it, the blank-template dialog was still resolving when you typed. Just re-fill that slide — and going forward, verify the first question persisted before continuing (see Setup step 5).
-- **Free-tier accounts** only offer Quiz and True/False question types (others are marked premium). Stick to Quiz.
+- **First slide lost.** If the very first question comes back empty after you typed it, the blank-template dialog was still resolving when you typed. Just re-fill that slide — and going forward, verify the first question persisted before continuing (see Setup step 6).
+- **Plan-dependent features.** Question-type availability varies by account type, workspace, region, and subscription. Use the portable 4-option Quiz default and inspect the live editor rather than assuming a fixed free-tier feature set.
+- **Tool or UI mismatch.** If semantic inspection, stable element targeting, or required controls are unavailable, stop. Deliver the companion document and report the exact remaining manual steps instead of using blind coordinate automation.
